@@ -15,7 +15,13 @@ parser.add_argument("--conv_type", type=str, default='ARMA')
 
 args = parser.parse_args()
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 if __name__ == '__main__':
+
+    print(device)
+
+    """
     seg = Segmentation(args.process, args.bs, args.epochs, tuple(args.resolution), args.activation, args.loss_type, args.threshold, args.conv_type)
     ds = Dataset(args.dataset)
 
@@ -34,4 +40,4 @@ if __name__ == '__main__':
                 continue
     
     print(f'Final mIoU: {(total_iou / total_samples):.4f}')
-
+    """
