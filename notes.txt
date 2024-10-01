@@ -1,6 +1,19 @@
+git clone https://github.com/ksgr5566/UnSeGArmaNet.git
+cd UnSeGArmaNet
+
+Create an empty remote repository on github
+git remote add myrepo <URL-of-new-remote-repo>
+git remote -v
+git add .
+git commit -m ""
+git status
+git push myrepo main
+git remote remove myrepo
+
 python -m venv venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\venv\Scripts\ativate
 deactivate
 pip list
 
+pip install -r requirements.txt
