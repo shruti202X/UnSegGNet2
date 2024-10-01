@@ -1,7 +1,10 @@
+# Git Clone from Original repo
+
 git clone https://github.com/ksgr5566/UnSeGArmaNet.git
 cd UnSeGArmaNet
 
 Create an empty remote repository on github
+
 git remote add myrepo <URL-of-new-remote-repo>
 git remote -v
 git add .
@@ -10,10 +13,21 @@ git status
 git push myrepo main
 git remote remove myrepo
 
+# Download Cuda
+
+https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=11&target_type=exe_local
+Read more about Cuda: https://docs.nvidia.com/cuda/cuda-c-programming-guide/_images/gpu-devotes-more-transistors-to-data-processing.png
+set PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\vX.X\bin;%PATH%
+nvcc --version (to check cuda version)
+
+# Create Python environment
+
 python -m venv venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\venv\Scripts\ativate
+.\venv\Scripts\activate
 deactivate
 pip list
+
+
 
 pip install -r requirements.txt
