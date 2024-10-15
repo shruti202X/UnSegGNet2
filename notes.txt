@@ -18,6 +18,7 @@ git remote remove myrepo
 # Further reading on Git
 
 https://www.freecodecamp.org/news/git-remove-last-commit-how-to-undo-a-commit-in-git/
+To undo last local commit: git reset --soft HEAD~
 
 # Download Cuda
 
