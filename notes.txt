@@ -5,6 +5,8 @@ cd UnSeGArmaNet
 
 Create an empty remote repository on github
 
+git config --global user.name shruti202X
+git config --global user.email shrutibansal@gmail.com
 git remote add myrepo <URL-of-new-remote-repo>
 git remote -v
 git add .
@@ -18,16 +20,29 @@ git remote remove myrepo
 https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=11&target_type=exe_local
 Read more about Cuda: https://docs.nvidia.com/cuda/cuda-c-programming-guide/_images/gpu-devotes-more-transistors-to-data-processing.png
 set PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\vX.X\bin;%PATH%
-nvcc --version (to check cuda version)
+
+The lab computer has preinstalled Cuda on C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\bin
+Go to Control Panel
+Add in PATH: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\bin. C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\libnvvp
+
+Check installation using cmd:
+C:\Users\sb398>nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2022 NVIDIA Corporation
+Built on Wed_Jun__8_16:59:34_Pacific_Daylight_Time_2022
+Cuda compilation tools, release 11.7, V11.7.99
+Build cuda_11.7.r11.7/compiler.31442593_0
 
 # Create Python environment
 
 python -m venv venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+or Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 .\venv\Scripts\activate
 deactivate
 pip list
 
-
-
 pip install -r requirements.txt
+pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
+
+nvida-smi
