@@ -49,11 +49,16 @@ class GNNpool(nn.Module):
             raise ValueError("Activation function not supported")
 
         # GNN conv
-        if conv_type == "ARMA":
+        self.conv_type = conv_type
+        if self.conv_type == "ARMA":
             self.convs = pyg_nn.ARMAConv(input_dim, conv_hidden, num_stacks=2, num_layers=4, act=nn_activ,\
                 dropout=0.4,shared_weights=False)
-        elif conv_type == "GCN":
+        elif self.conv_type == "GCN":
             self.convs = pyg_nn.GCN(input_dim, conv_hidden, 1, act=act)
+        elif self.conv_type == "GAT":
+            self.conv1 = pyg_nn.GCN(input_dim, 128, 2, act=act)
+            self.conv2 = pyg_nn.GATConv(128, 64, heads=2, concat=False, dropout=0.4, negative_slope=0.2)
+            self.conv3 = pyg_nn.GCN(64, 64, 2, act=act)
         else:
             raise ValueError("Conv type not supported")
 
@@ -70,7 +75,12 @@ class GNNpool(nn.Module):
         @return: Adjacency matrix of the graph and pooled graph (argmax of S)
         """
         x, edge_index, edge_atrr = data.x, data.edge_index, data.edge_attr
-        x = self.convs(x, edge_index, edge_atrr)  # applying con5v
+        if self.conv_type == "GAT":
+            x = self.conv1(x, edge_index, edge_atrr)
+            x = self.conv2(x, edge_index, edge_atrr)
+            x = self.conv3(x, edge_index, edge_atrr)
+        else:
+            x = self.convs(x, edge_index, edge_attr)
         x = self.f_act(x)
 
         # pass feats through mlp
