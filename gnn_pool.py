@@ -90,7 +90,46 @@ class GNNpool(nn.Module):
 
         return A, S
 
-    def loss(self, A, S):
+    def loss(self, As, Ss):
+        """
+        loss calculation, relaxed form of Normalized-cut
+        @param As: Adjacency matrices of the graph
+        @param Ss: Polled graphs (argmax of Ss)
+        @return: loss value
+        """
+        modularity_term = None
+        collapse_reg_term = None
+
+        for A, S in zip(As, Ss):
+            C = S
+            d = torch.sum(A, dim=1)
+            m = torch.sum(A)
+            B = A - torch.ger(d, d) / (2 * m)
+            
+            I_S = torch.eye(self.num_clusters, device=self.device)
+            k = torch.norm(I_S)
+            n = S.shape[0]
+            
+            if modularity_term is None:
+                modularity_term = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))
+                collapse_reg_term = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+            else:
+                modularity_term_current = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))    
+                collapse_reg_term_current = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+
+                if modularity_term.shape!= modularity_term_current.shape:
+                    print(modularity_term.shape, modularity_term_current.shape)
+                    print("modularity_term")
+                if collapse_reg_term.shape!= collapse_reg_term_current.shape:
+                    print(collapse_reg_term.shape, collapse_reg_term_current.shape)
+                    print("collapse_reg_term")
+        
+        modularity_term /= len(As)
+        collapse_reg_term /= len(As)
+
+        return modularity_term + collapse_reg_term
+
+    def loss2(self, A, S):
         """
         loss calculation, relaxed form of Normalized-cut
         @param A: Adjacency matrix of the graph

@@ -16,7 +16,7 @@ from gnn_pool import GNNpool
 from transformers import SamModel, SamProcessor
 
 class Segmentation:
-    def __init__(self, process, bs=False, epochs=20, resolution=(224, 224), activation=None, loss_type=None, threshold=None, conv_type=None):
+    def __init__(self, process, bs=False, epochs=20, resolution=(224, 224), activation=None, loss_type=None, threshold=None, conv_type=None, batch_size=2):
         if process not in ["KMEANS_DINO", "DINO", "MEDSAM_INFERENCE"]:
             raise ValueError(f'Process: {process} is not supported')
         self.process = process
@@ -26,6 +26,7 @@ class Segmentation:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.loss_type = loss_type
         self.threshold = threshold
+        self.batch_size = batch_size
         if process in ["DINO", "KMEANS_DINO"]:
             self.feats_dim = 384
             pretrained_weights = './dino_deitsmall8_pretrain_full_checkpoint.pth'
@@ -40,7 +41,66 @@ class Segmentation:
         torch.save(self.model.state_dict(), 'model.pt')
         self.model.train()
 
-    def segment(self, image, mask):
+    def segment(self, images, masks):
+        """
+        @param image: Image to segment (numpy array)
+        @param mask: Ground truth mask (binary numpy array)
+        """
+
+        self.model.load_state_dict(torch.load('./model.pt', map_location=self.device))
+        opt = optim.AdamW(self.model.parameters(), lr=0.001)
+        image_tensors = []
+        datas = []
+
+        for image, mask in zip(images, masks):
+            image_tensor, image = util.load_data_img(image, self.resolution)
+            image_tensors.append(image_tensor)
+            F = deep_features(image_tensor, self.extractor, device=self.device)
+            W = util.create_adj(F, self.loss_type, self.threshold)
+            node_feats, edge_index, edge_weight = util.load_data(W, F)
+            data = Data(node_feats, edge_index, edge_weight).to(self.device)
+            datas.append(data)
+
+        for _ in range(self.epochs):
+            opt.zero_grad()
+            As = []
+            Ss = []
+            for data in datas:
+                A, S = self.model(data, torch.from_numpy(W).to(self.device))
+                As.append(A)
+                Ss.append(S)
+                
+            loss = self.model.loss(As, Ss)
+            loss.backward()
+            opt.step()
+        
+        ious = []
+        segmentations = []
+        segmentation_over_images = []
+
+        for image, mask, image_tensor, data, S in zip(images, masks, image_tensors, datas, Ss):
+            S = S.detach().cpu()
+            S = torch.argmax(S, dim=-1)
+
+            segmentation = util.graph_to_mask(S, image_tensor, image)
+            if self.bs:
+                segmentation = bilateral_solver_output(image, segmentation)[1]
+            segmentation = np.where(segmentation == True, 1, 0).astype(np.uint8)
+
+            iou1 = Segmentation.iou(segmentation, mask)
+            iou2 = Segmentation.iou(1-segmentation, mask)
+            if iou2 > iou1:
+                segmentation = 1 - segmentation
+
+            segmentation_over_image  = util.apply_seg_map(image, segmentation, 0.1)
+
+            ious.append(max(iou1, iou2))
+            segmentations.append(segmentation)
+            segmentation_over_images.append(segmentation_over_image)
+
+        return ious, segmentations, segmentation_over_images
+
+    def segment2(self, image, mask):
         """
         @param image: Image to segment (numpy array)
         @param mask: Ground truth mask (binary numpy array)
