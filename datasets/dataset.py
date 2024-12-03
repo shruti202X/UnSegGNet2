@@ -3,10 +3,11 @@ import deeplake
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import imageio.v2 as imageio
 
 class Dataset:
     def __init__(self, dataset):
-        if dataset not in ["CUB", "ECSSD", "DUTS"]:
+        if dataset not in ["CUB", "ECSSD", "DUTS", "Clinical"]:
             raise ValueError(f'Dataset: {dataset} is not supported')
         self.dataset = dataset
         if dataset == "CUB":
@@ -17,6 +18,18 @@ class Dataset:
             self.masks = ds["masks"]
         elif dataset == "DUTS":
             self.images, self.masks = load_duts()
+        elif dataset == "Clinical":
+            folder1 = "datasets/CVC-ClinicDB/Original"
+            folder2 = "datasets/CVC-ClinicDB/Ground Truth"
+
+            images = sorted(os.listdir(folder1))
+            masks = sorted(os.listdir(folder2))
+
+            images = [folder1 + '/' + x for x in images]
+            masks = [folder2 + '/' + x for x in masks]
+
+            self.images = images[1:-1]
+            self.masks = masks[1:-1]
         self.loader = len(self.images)
 
     def load_samples(self):
@@ -30,9 +43,14 @@ class Dataset:
                     img = np.asarray(imagep)
                     seg = np.asarray(true_maskp)
                     true_mask = np.where(seg == True, 1, 0)
-                if self.dataset == "DUTS":
+                elif self.dataset == "DUTS":
                     img = np.asarray(Image.open(imagep))
                     seg = np.asarray(Image.open(true_maskp).convert('L'))
+                    true_mask = np.where(seg == 255,1,0).astype(np.uint8)
+                elif self.dataset == "Clinical":
+                    img = imageio.imread(imagep)
+                    seg = np.asarray(Image.open(true_maskp).convert('L'))
+                    img, seg = cts(img, seg)
                     true_mask = np.where(seg == 255,1,0).astype(np.uint8)
                 yield img, true_mask
             except Exception as e:
@@ -103,3 +121,24 @@ def load_duts():
     test = sorted(file_paths)
 
     return test, masks
+
+def cts(image, segmap,wnd = [20,20]):
+    """
+    Crop the image and segmentation map to the boundary of the segmentation.
+
+    :param image: A numpy array representing the color image.
+    :param segmap: A numpy array representing the binary segmentation map.
+    :return: Cropped image and segmentation map.
+    """
+    [ht,wdt] = segmap.shape
+    # Find the indices where segmap is 1
+    rows, cols = np.where(segmap == 255)
+    # Find min and max coordinates
+    min_row, max_row = max(min(rows)-wnd[0],0), min(max(rows)+wnd[0],ht)
+    min_col, max_col = max(min(cols)-wnd[1],0), min(max(cols)+wnd[1],wdt)
+
+    # Crop the image and segmap
+    cropped_image = image[min_row:max_row+1, min_col:max_col+1]
+    cropped_segmap = segmap[min_row:max_row+1, min_col:max_col+1]
+
+    return cropped_image, cropped_segmap
