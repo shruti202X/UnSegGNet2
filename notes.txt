@@ -56,3 +56,15 @@ pip install -r requirements.txt
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
 pip install segment_anything
 pip install torch_geometric
+
+# Github Conflicts
+
+1. git pull myrepo main
+2. Look for conflict markers (<<<<<<<, =======, >>>>>>>) and resolve the differences
+3. git add .
+4. git commit -m ""
+5. git push myrepo main
+
+OR (To over-write changes)
+
+git push myrepo main --force
