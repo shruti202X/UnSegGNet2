@@ -58,6 +58,11 @@ pip install segment_anything
 pip install torch_geometric
 pip install imageio
 
+# To obtain ClinicDB
+
+https://polyp.grand-challenge.org/
+http://pages.cvc.uab.es/CVC-Colon/index.php/databases/
+
 # Github Conflicts
 
 1. git pull myrepo main
