@@ -58,7 +58,7 @@ class Segmentation:
             F = deep_features(image_tensor, self.extractor, device=self.device)
             W = util.create_adj(F, self.loss_type, self.threshold)
             node_feats, edge_index, edge_weight = util.load_data(W, F)
-            data = Data(node_feats, edge_index, edge_weight).to(self.device)
+            data = Data(x=node_feats, edge_index=edge_index, edge_attr=edge_weight).to(self.device)
             datas.append(data)
 
         for _ in range(self.epochs):
