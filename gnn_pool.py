@@ -74,7 +74,7 @@ class GNNpool(nn.Module):
         @param A: Adjacency matrix of the graph
         @return: Adjacency matrix of the graph and pooled graph (argmax of S)
         """
-        x, edge_index, edge_atrr = data.x, data.edge_index, data.edge_attr
+        x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
         if self.conv_type == "GAT":
             x = self.conv1(x, edge_index, edge_atrr)
             x = self.conv2(x, edge_index, edge_atrr)
