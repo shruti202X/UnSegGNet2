@@ -77,8 +77,7 @@ if __name__ == '__main__':
       
                     iou = sum_ious / len(ious)
                     print(f"IoU for Batch {total_samples/args.batch_size} : {iou:.2f}, {ious}, mIoU so far: {(total_iou/total_samples):.2f}")
-                    fl = f"{log_file}.log"
-                    with open(fl, "a") as f:
+                    with open(log_file, "a") as f:
                         f.write(f"IoU for Batch {total_samples/args.batch_size} : {iou:.2f}, {ious}, mIoU so far: {(total_iou/total_samples):.2f}\n")
                         
                     gc.collect()
