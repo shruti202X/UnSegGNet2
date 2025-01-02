@@ -72,7 +72,7 @@ if __name__ == '__main__':
                             axes[1].axis("off")
                             axes[2].imshow(mask)
                             axes[2].axis("off")
-                            plt.savefig(f'{image_file_folder}/failed_{total_samples}.png', bbox_inches='tight', dpi=300)
+                            plt.savefig(f'{img_folder}/failed_{total_samples}.png', bbox_inches='tight', dpi=300)
                             plt.close(fig)
       
                     iou = sum_ious / len(ious)
