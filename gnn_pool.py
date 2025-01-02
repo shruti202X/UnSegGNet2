@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.nn as pyg_nn
 
+# self.model = GNNpool(384, 64, 32, 2, self.device, activation, loss_type, conv_type).to(self.device)
 
 class GNNpool(nn.Module):
     def __init__(self, input_dim, conv_hidden, mlp_hidden, num_clusters, device, activ="silu", loss_type="DMON", conv_type="ARMA"):
@@ -75,6 +76,9 @@ class GNNpool(nn.Module):
         @return: Adjacency matrix of the graph and pooled graph (argmax of S)
         """
         x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
+        
+        # print(x.shape) # torch.Size([3025, 384])
+        
         if self.conv_type == "GAT":
             x = self.conv1(x, edge_index, edge_attr)
             x = self.conv2(x, edge_index, edge_attr)
@@ -88,46 +92,90 @@ class GNNpool(nn.Module):
         # cluster assignment for matrix S
         S = F.softmax(H)
 
+        # print(S.shape) # torch.Size([3025, 2])
+
         return A, S
 
-    def loss(self, As, Ss):
+    def loss(self, As, Ss, Ls=None):
         """
         loss calculation, relaxed form of Normalized-cut
         @param As: Adjacency matrices of the graph
         @param Ss: Polled graphs (argmax of Ss)
         @return: loss value
         """
-        modularity_term = None
-        collapse_reg_term = None
 
-        for A, S in zip(As, Ss):
-            C = S
-            d = torch.sum(A, dim=1)
-            m = torch.sum(A)
-            B = A - torch.ger(d, d) / (2 * m)
+        if Ls == None:
+            modularity_term = None
+            collapse_reg_term = None
+
+            for A, S in zip(As, Ss):
+                C = S
+                d = torch.sum(A, dim=1)
+                m = torch.sum(A)
+                B = A - torch.ger(d, d) / (2 * m)
+                
+                I_S = torch.eye(self.num_clusters, device=self.device)
+                k = torch.norm(I_S)
+                n = S.shape[0]
+                
+                if modularity_term is None:
+                    modularity_term = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))
+                    collapse_reg_term = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+                else:
+                    modularity_term_current = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))    
+                    collapse_reg_term_current = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+
+                    if modularity_term.shape!= modularity_term_current.shape:
+                        print(modularity_term.shape, modularity_term_current.shape)
+                        print("modularity_term")
+                    if collapse_reg_term.shape!= collapse_reg_term_current.shape:
+                        print(collapse_reg_term.shape, collapse_reg_term_current.shape)
+                        print("collapse_reg_term")
             
-            I_S = torch.eye(self.num_clusters, device=self.device)
-            k = torch.norm(I_S)
-            n = S.shape[0]
+            modularity_term /= len(As)
+            collapse_reg_term /= len(As)
+
+            return modularity_term + collapse_reg_term
+        else:
+          
+            modularity_term = None
+            collapse_reg_term = None
+            cross_entropy_term = None
+
+            for A, S, L in zip(As, Ss, Ls):
+                C = S
+                d = torch.sum(A, dim=1)
+                m = torch.sum(A)
+                B = A - torch.ger(d, d) / (2 * m)
+                
+                I_S = torch.eye(self.num_clusters, device=self.device)
+                k = torch.norm(I_S)
+                n = S.shape[0]
+                
+                if modularity_term is None:
+                    modularity_term = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))
+                    collapse_reg_term = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+                    cross_entropy_term = np.sum(S[L == 1, 1])
+                else:
+                    modularity_term_current = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))    
+                    collapse_reg_term_current = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+                    cross_entropy_term_current = np.sum(S[L == 1, 1])
+
+                    if modularity_term.shape!= modularity_term_current.shape:
+                        print(modularity_term.shape, modularity_term_current.shape)
+                        print("modularity_term")
+                    if collapse_reg_term.shape!= collapse_reg_term_current.shape:
+                        print(collapse_reg_term.shape, collapse_reg_term_current.shape)
+                        print("collapse_reg_term")
+                    if cross_entropy_term.shape!=cross_entropy_term_current.shpae:
+                        print(cross_entropy_term.shape, cross_entropy_term_current.shape)
+                        print("cross_entropy_term")
             
-            if modularity_term is None:
-                modularity_term = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))
-                collapse_reg_term = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
-            else:
-                modularity_term_current = (-1/(2*m)) * torch.trace(torch.mm(torch.mm(C.t(), B), C))    
-                collapse_reg_term_current = (torch.sqrt(k)/n) * (torch.norm(torch.sum(C.t(), dim=0), p='fro')) - 1
+            modularity_term /= len(As)
+            collapse_reg_term /= len(As)
+            cross_entropy_term /= len(As)
 
-                if modularity_term.shape!= modularity_term_current.shape:
-                    print(modularity_term.shape, modularity_term_current.shape)
-                    print("modularity_term")
-                if collapse_reg_term.shape!= collapse_reg_term_current.shape:
-                    print(collapse_reg_term.shape, collapse_reg_term_current.shape)
-                    print("collapse_reg_term")
-        
-        modularity_term /= len(As)
-        collapse_reg_term /= len(As)
-
-        return modularity_term + collapse_reg_term
+            return (modularity_term + collapse_reg_term)*0.5 + cross_entropy_term*0.5
 
     def loss2(self, A, S):
         """
