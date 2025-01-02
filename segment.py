@@ -57,6 +57,10 @@ class Segmentation:
             image_tensors.append(image_tensor)
             F = deep_features(image_tensor, self.extractor, device=self.device)
             W = util.create_adj(F, self.loss_type, self.threshold)
+            # print("F.shape = ", F.shape) # (3025, 384)
+            # print("W.shape = ", W.shape) # (3025, 3025)
+
+            # initially nodes count = 50176, finally nodes count = 3025
             node_feats, edge_index, edge_weight = util.load_data(W, F)
             data = Data(x=node_feats, edge_index=edge_index, edge_attr=edge_weight).to(self.device)
             datas.append(data)
@@ -65,11 +69,27 @@ class Segmentation:
             opt.zero_grad()
             As = []
             Ss = []
+            Ls = []
             for data in datas:
                 A, S = self.model(data, torch.from_numpy(W).to(self.device))
                 As.append(A)
                 Ss.append(S)
-                
+
+                # Since S is different for every data and for every epoch
+                # we cant have same L for every epoch
+
+                '''
+                seg = util.graph_to_mask(S, image_tensor, image)
+                print(seg.shape)
+                seg = np.where(seg == True, 1, 0).astype(np.uint8)
+                indices_of_ones = np.argwhere(seg == 1)
+                num_to_zero = int(seg.sum() * 0.95)
+                indices_to_zero = indices_of_ones[np.random.choice(len(indices_of_ones), num_to_zero, replace=False)]
+                for i in indices_to_zero:
+                    #seg[i] = 0
+                    pass
+                Ls.append(seg)
+                '''
             loss = self.model.loss(As, Ss)
             loss.backward()
             opt.step()
