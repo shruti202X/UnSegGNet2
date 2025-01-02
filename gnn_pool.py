@@ -76,9 +76,9 @@ class GNNpool(nn.Module):
         """
         x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
         if self.conv_type == "GAT":
-            x = self.conv1(x, edge_index, edge_atrr)
-            x = self.conv2(x, edge_index, edge_atrr)
-            x = self.conv3(x, edge_index, edge_atrr)
+            x = self.conv1(x, edge_index, edge_attr)
+            x = self.conv2(x, edge_index, edge_attr)
+            x = self.conv3(x, edge_index, edge_attr)
         else:
             x = self.convs(x, edge_index, edge_attr)
         x = self.f_act(x)
