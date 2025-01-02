@@ -42,8 +42,12 @@ if __name__ == '__main__':
         now = datetime.now().strftime("_%d_%m_%Y_%H_%M_%S")
         img_folder += now
         filename += now
-    log_file = f"logs/log_{filename}.store"
+    log_file = f"logs/log_{filename}.txt"
     os.mkdir(img_folder)
+
+    log_dir = 'logs'
+    if not os.path.exists(log_dir):
+      os.makedirs(log_dir)
 
     total_iou = 0
     total_samples = 0
